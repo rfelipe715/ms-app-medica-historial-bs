@@ -3,9 +3,12 @@ package cl.duoc.ms_historial_bs.service;
 import cl.duoc.ms_historial_bs.client.HistorialDbRestClient;
 import cl.duoc.ms_historial_bs.client.PacientesBsRestClient;
 import cl.duoc.ms_historial_bs.client.CitasBsRestClient;
+import cl.duoc.ms_historial_bs.exception.HistorialNotFoundException;
+import cl.duoc.ms_historial_bs.exception.ServicioNoDisponibleException;
 import cl.duoc.ms_historial_bs.model.dto.HistorialDTO;
 import cl.duoc.ms_historial_bs.model.dto.HistorialUpdateDTO;
 import cl.duoc.ms_historial_bs.model.dto.HistorialConDetallesDTO;
+import feign.FeignException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -24,12 +27,26 @@ public class HistorialService {
     @Autowired
     private CitasBsRestClient citasBsRestClient;
 
-    public void registrarHistorial(HistorialDTO historialDTO) {
-        historialDbRestClient.guardarHistorial(historialDTO);
+    public HistorialDTO registrarHistorial(HistorialDTO historialDTO) {
+        try {
+            return historialDbRestClient.guardarHistorial(historialDTO);
+        } catch (FeignException e) {
+            throw new ServicioNoDisponibleException("ms-historial-db", e);
+        }
     }
 
     public List<HistorialDTO> obtenerHistoriales() {
         return historialDbRestClient.obtenerHistoriales();
+    }
+
+    public HistorialDTO obtenerHistorialPorId(Long id) {
+        try {
+            return historialDbRestClient.obtenerHistorialPorId(id);
+        } catch (FeignException.NotFound e) {
+            throw new HistorialNotFoundException(id);
+        } catch (FeignException e) {
+            throw new ServicioNoDisponibleException("ms-historial-db", e);
+        }
     }
 
     public List<HistorialConDetallesDTO> obtenerHistorialesConDetalles() {
@@ -39,11 +56,23 @@ public class HistorialService {
     }
 
     public void eliminarHistorial(Long id) {
-        historialDbRestClient.eliminarHistorial(id);
+        try {
+            historialDbRestClient.eliminarHistorial(id);
+        } catch (FeignException.NotFound e) {
+            throw new HistorialNotFoundException(id);
+        } catch (FeignException e) {
+            throw new ServicioNoDisponibleException("ms-historial-db", e);
+        }
     }
 
-    public HistorialUpdateDTO actualizarHistorial(HistorialUpdateDTO historial) {
-        return historialDbRestClient.actualizarHistorial(historial);
+    public HistorialDTO actualizarHistorial(Long id, HistorialUpdateDTO historial) {
+        try {
+            return historialDbRestClient.actualizarHistorial(id, historial);
+        } catch (FeignException.NotFound e) {
+            throw new HistorialNotFoundException(id);
+        } catch (FeignException e) {
+            throw new ServicioNoDisponibleException("ms-historial-db", e);
+        }
     }
 
     public HistorialConDetallesDTO obtenerHistorialConDetalles(Long id) {
