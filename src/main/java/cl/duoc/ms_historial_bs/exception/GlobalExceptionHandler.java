@@ -1,6 +1,8 @@
 package cl.duoc.ms_historial_bs.exception;
 
 import feign.FeignException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -15,13 +17,17 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     @ExceptionHandler(HistorialNotFoundException.class)
     public ResponseEntity<Map<String, Object>> manejarHistorialNoEncontrado(HistorialNotFoundException ex) {
+        log.warn("404 - {}", ex.getMessage());
         return construirRespuesta(HttpStatus.NOT_FOUND, "Historial no encontrado", ex.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> manejarErroresDeValidacion(MethodArgumentNotValidException ex) {
+        log.warn("400 - Validación fallida: {}", ex.getMessage());
         Map<String, String> errores = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach(error -> {
             String campo = ((FieldError) error).getField();
@@ -38,11 +44,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(FeignException.NotFound.class)
     public ResponseEntity<Map<String, Object>> manejarNoEncontradoRemoto(FeignException.NotFound ex) {
+        log.warn("404 - Recurso no encontrado en servicio remoto: {}", ex.getMessage());
         return construirRespuesta(HttpStatus.NOT_FOUND, "Recurso no encontrado", "El servicio remoto no encontró el recurso solicitado.");
     }
 
     @ExceptionHandler(ServicioNoDisponibleException.class)
     public ResponseEntity<Map<String, Object>> manejarServicioNoDisponible(ServicioNoDisponibleException ex) {
+        log.error("502 - {}", ex.getMessage());
         return construirRespuesta(HttpStatus.BAD_GATEWAY, "Servicio no disponible", ex.getMessage());
     }
 
